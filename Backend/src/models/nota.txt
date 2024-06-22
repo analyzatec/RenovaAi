@@ -1,0 +1,8 @@
+usuarios: Armazena os dados dos usuários (admin, doctor, assistente).
+pacientes: Armazena os dados dos pacientes.
+citas: Armazena as informações sobre as consultas.
+historiales: Armazena o histórico clínico dos pacientes.
+tratamientos: Armazena os tratamentos prescritos aos pacientes.
+multimedia: Armazena arquivos multimídia relacionados ao histórico do paciente.
+alergias: Armazena as alergias dos pacientes.
+zonas: Armazena as zonas (se for uma informação relevante para o sistema).

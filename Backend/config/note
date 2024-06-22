@@ -1,0 +1,4 @@
+Loaded configuration file "config\config.json".
+Using environment "development".
+== 20240611174639-create-users-table: migrating =======
+== 20240611174639-create-users-table: migrated (0.082s)
