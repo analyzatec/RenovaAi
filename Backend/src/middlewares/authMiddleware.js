@@ -10,7 +10,7 @@ const authorizeAdmin = (req, res, next) => {
 };
 
 const authorizeDoctor = (req, res, next) => {
-  if (req.user.userRol === 'doctor') {
+  if (req.user.userRol === 'doctor' || req.user.userRol === 'admin') {
     next();
   } else {
     return res.status(403).json({ message: 'Acesso negado. Apenas médicos podem realizar esta ação.' });

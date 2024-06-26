@@ -1,3 +1,4 @@
+// backend/src/models/cita.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -5,36 +6,33 @@ const Cita = sequelize.define('Cita', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
-    primaryKey: true
+    primaryKey: true,
   },
-  fecha: {
+  dataRegistro: { // Data de registro da receita
     type: DataTypes.DATEONLY,
-    allowNull: false
+    allowNull: false,
+    defaultValue: DataTypes.NOW, // Define a data atual como padrão
   },
-  hora: {
-    type: DataTypes.TIME,
-    allowNull: false
+  dataUltimaConsulta: { // Data da última consulta médica
+    type: DataTypes.DATEONLY,
+    allowNull: false,
   },
-  estado: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  idPaciente: {
+  idPaciente: { // ID do paciente (usuário com rol 'paciente')
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Pacientes',
-      key: 'id'
-    }
+      model: 'Usuarios',
+      key: 'id',
+    },
   },
-  idAsistenteP: {
+  idUsuarioCadastro: { // ID do usuário que cadastrou a receita
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Usuarios', 
-      key: 'id'
-    }
-  }
+      model: 'Usuarios',
+      key: 'id',
+    },
+  },
 });
 
 module.exports = Cita;

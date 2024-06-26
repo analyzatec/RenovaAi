@@ -1,3 +1,4 @@
+// src/controllers/usuarioController.js
 const bcrypt = require('bcrypt');
 const Usuario = require('../models/usuario');
 const createDOMPurify = require('dompurify');
@@ -39,18 +40,23 @@ const createUsuario = async (req, res) => {
   await body('cidade').notEmpty().withMessage('A cidade é obrigatória').run(req);
   await body('estado').notEmpty().withMessage('O estado é obrigatório').run(req);
 
+  // Validações para campos de paciente (se aplicável)
+  if (req.body.rol === 'asistente') {
+    await body('tipoSangre').notEmpty().withMessage('O tipo sanguíneo é obrigatório.').run(req);
+    await body('idZona').notEmpty().withMessage('A zona é obrigatória.').run(req);
+  }
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   // Validação do role (apenas 'asistente' é permitido para 'doctor')
-  if (req.user.userRol === 'doctor' && req.body.rol !== 'asistente') { 
+  if (req.user.userRol === 'doctor' && req.body.rol !== 'asistente') {
     return res.status(403).json({ message: 'Médicos só podem registrar usuários com o role "asistente".' });
   }
 
   try {
-    // // 1. Crie o usuário (envolvido pelo try...catch)
     const usuario = await Usuario.create({
       contrasena: req.body.contrasena.trim(),
       rol: req.body.rol,
@@ -65,6 +71,10 @@ const createUsuario = async (req, res) => {
       cidade: req.body.cidade.trim(),
       estado: req.body.estado,
       byId: req.body.byId,
+      // Campos de paciente (se aplicável)
+      tipoSangre: req.body.tipoSangre,
+      idZona: req.body.idZona,
+      status: req.body.status
     });
 
     return res.status(201).json({
@@ -79,10 +89,10 @@ const createUsuario = async (req, res) => {
     console.log(error)
     console.error('Erro ao registrar usuário:', error);
 
-    if (error.name === 'SequelizeUniqueConstraintError') { 
+    if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({ message: 'CPF já cadastrado.' });
     }
-    
+
     return res.status(500).json({ message: 'Erro ao registrar usuário.' });
   }
 };
@@ -98,6 +108,28 @@ const getUsuarios = async (req, res) => {
   }
 };
 
+const getTodosPacientes = async (req, res) => {
+  const { status } = req.query; // Parâmetro de filtro de status
+
+  try {
+    const options = {
+      where: { rol: 'asistente' }, // Filtra por usuários com rol 'paciente'
+    };
+
+    // Adiciona filtro de status, se fornecido
+    if (status !== undefined) {
+      options.where.status = status === 'true';
+    }
+
+    const pacientes = await Usuario.findAll(options);
+
+    res.status(200).json(pacientes);
+  } catch (error) {
+    console.error('Erro ao buscar pacientes:', error);
+    res.status(500).json({ message: 'Erro ao buscar pacientes.' });
+  }
+};
+
 const getUsuarioByCPF = async (req, res) => {
   try {
     const cpf = req.params.cpf;
@@ -110,7 +142,7 @@ const getUsuarioByCPF = async (req, res) => {
     }
 
     // 3. Retornar os dados do usuário
-    res.status(200).json({ 
+    res.status(200).json({
       usuario: {
         id: usuario.id,
         usuario: usuario.usuario,
@@ -137,17 +169,12 @@ const updateUsuario = async (req, res) => {
   const usuarioId = req.params.id;
   console.log("updateUsuario: ", req.body)
 
-  // Regras de validação
-  await body('contrasena')
-    .isLength({ min: 8 })
-    .matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]+$/)
-    .not().isIn(['password', '123456', 'qwerty', '12345678', 'admin', 'user', 'senha'])
-    .withMessage('A senha deve ter pelo menos 8 caracteres, incluindo letras, números e caracteres especiais.')
-    .run(req);
-  await body('rol')
-    .isIn([ 'doctor', 'asistente', 'analista'])
-    .withMessage('Papel de usuário inválido.')
-    .run(req);
+  if (req.user.userRol === 'admin') {
+    await body('rol')
+      .isIn([ 'doctor', 'asistente', 'analista'])
+      .withMessage('Papel de usuário inválido.')
+      .run(req);
+  }
   await body('nombre').notEmpty().withMessage('O nome é obrigatório.').run(req);
   await body('fechaNacimiento').isDate().withMessage('A data de nascimento deve ser uma data válida.').run(req);
   await body('genero').notEmpty().withMessage('O gênero é obrigatório.').run(req);
@@ -164,20 +191,26 @@ const updateUsuario = async (req, res) => {
   await body('cidade').notEmpty().withMessage('A cidade é obrigatória').run(req);
   await body('estado').notEmpty().withMessage('O estado é obrigatório').run(req);
 
+  if (req.body.rol === 'asistente' && req.user.userRol === 'doctor') {
+    await body('tipoSangre').notEmpty().withMessage('O tipo sanguíneo é obrigatório.').run(req);
+    await body('idZona').notEmpty().withMessage('A zona é obrigatória.').run(req);
+  }
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
-    // // 1. Criptografe a senha
-    const hashedPassword = await bcrypt.hash(req.body.contrasena.trim(), 10);
-    // console.log("body: ",req.body.contrasena.trim())
-    // console.log("Hash: ",hashedPassword)
+    // Busca o usuário pelo ID
+    const usuario = await Usuario.findByPk(usuarioId);
 
-    // 2. Crie o usuário (envolvido pelo try...catch)
-    const [linhasAfetadas] = await Usuario.update({
-      contrasena: hashedPassword,
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    // Atualiza os campos do usuário, exceto a senha
+    await usuario.update({
       rol: req.body.rol,
       nombre: req.body.nombre.trim(),
       fechaNacimiento: req.body.fechaNacimiento,
@@ -190,29 +223,25 @@ const updateUsuario = async (req, res) => {
       cidade: req.body.cidade.trim(),
       estado: req.body.estado,
       byId: req.body.byId,
-    },{
-      where: {id: usuarioId}
+      // Campos de paciente
+      tipoSangre: req.body.tipoSangre,
+      idZona: req.body.idZona,
+      status: req.body.status
     });
 
-    const usuarioAtualizado = await Usuario.findByPk(usuarioId);
-
-    if (!usuarioAtualizado) {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
+      return res.status(200).json({ // Use 200 OK para sucesso na atualização
+        code: 200,
+        message: 'Usuário atualizado com sucesso!',
+        data: {
+          id: usuario.id,
+          rol: usuario.rol,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      return res.status(500).json({ message: 'Erro ao atualizar usuário.' });
     }
-
-    return res.status(201).json({
-      code: 201,
-      message: 'Usuário atualizado com sucesso!',
-      data: {
-        id: usuarioAtualizado.id,
-        rol: usuarioAtualizado.rol,
-      },
-    });
-  } catch (error) {
-    console.error('Erro ao atualizar usuário:', error);
-    return res.status(500).json({ message: 'Erro ao atualizar usuário.' });
-  }
-};
+  };
 
 const getUsuarioById = async (req, res) => {
   const usuarioId = req.params.id;
@@ -231,8 +260,10 @@ const getUsuarioById = async (req, res) => {
   }
 };
 
-const deleteUsuario = async (req, res) => {
+// Função para desativar um usuário
+const desativarUsuario = async (req, res) => {
   const usuarioId = req.params.id;
+  const { status } = req.body; // Recebe o status do corpo da requisição
 
   try {
     const usuario = await Usuario.findByPk(usuarioId);
@@ -241,12 +272,51 @@ const deleteUsuario = async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
 
-    await usuario.destroy(); // Exclui o usuário do banco de dados
+    // Atualiza o status com o valor recebido
+    await usuario.update({ status });
 
-    res.status(204).send(); // Retorna 204 (No Content) para indicar sucesso
+    // Define a mensagem de sucesso de acordo com o status
+    const mensagem = status ? 'Usuário ativado com sucesso!' : 'Usuário desativado com sucesso!';
+
+    res.status(200).json({ message: mensagem });
   } catch (error) {
-    console.error('Erro ao excluir usuário:', error);
-    res.status(500).json({ message: 'Erro ao excluir usuário.' });
+    console.error('Erro ao atualizar status do usuário:', error);
+    res.status(500).json({ message: 'Erro ao atualizar status do usuário.' });
+  }
+};
+
+const registrarPaciente = async (req, res) => {
+  const cpf = req.body.cpf ? req.body.cpf.replace(/[^\d]+/g, '') : null;
+
+  try {
+    // Busca um usuário existente com o CPF fornecido
+    let usuario = await Usuario.findOne({ where: { cpf } });
+
+    if (usuario) {
+      // Se o usuário já existe, atualiza os campos de paciente
+      await usuario.update({
+        tipoSangre: req.body.tipoSangre,
+        idZona: req.body.idZona,
+        status: req.body.status || usuario.status // Mantém o status atual se não for fornecido
+      });
+    } else {
+      // Se o usuário não existe, cria um novo usuário com rol 'paciente'
+      usuario = await Usuario.create({
+        // ... (campos de usuário: nome, data de nascimento, etc.)
+        rol: 'paciente',
+        tipoSangre: req.body.tipoSangre,
+        idZona: req.body.idZona,
+        status: req.body.status || true // Define o status como true (ativo) por padrão
+      });
+    }
+
+    res.status(201).json({
+      message: 'Paciente registrado com sucesso!',
+      usuario: usuario
+    });
+  } catch (error) {
+    console.error('Erro ao registrar paciente:', error);
+    res.status(500).json({ message: 'Erro ao registrar paciente.' });
   }
 };
 
@@ -256,8 +326,10 @@ module.exports = {
   createUsuario,
   getUsuarioByCPF,
   getUsuarios,
+  getTodosPacientes,
   updateUsuario,
   getUsuarioById,
-  deleteUsuario,
+  desativarUsuario,
+  registrarPaciente,
   // ... outras funções
 };

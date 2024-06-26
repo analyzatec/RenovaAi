@@ -45,9 +45,18 @@ const createPaciente = async (req, res) => {
 
 const getPacientes = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 0;
+    const size = parseInt(req.query.size) || 10;
+    const status = req.query.status === 'true';
     const pacientes = await Paciente.findAll({
-      include: [{ model: Usuario, as: 'usuario' }] // Inclua os dados do usuário relacionado
-    }); 
+      where: { status }, // Filtra por status
+      include: [{ model: Usuario, as: 'usuario' }],
+      limit: size,
+      offset: page * size
+    });
+    const totalPacientes = await Paciente.count({ where: { status } }); // Conta pacientes com o status especificado
+    const totalPages = Math.ceil(totalPacientes / size);
+
     res.status(200).json(pacientes);
   } catch (error) {
     console.error('Erro ao buscar pacientes:', error);

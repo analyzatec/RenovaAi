@@ -5,30 +5,29 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes');
-const sequelize = require('./config/database'); 
+const sequelize = require('./config/database');
 const Usuario = require('./models/usuario');
-const Paciente = require('./models/paciente');
 const Zona = require('./models/zona'); // Zona antes de Paciente (se houver relação)
+// const Paciente = require('./models/paciente');
 const Historial = require('./models/historial'); // Historial antes de Tratamiento e Multimedia
-const Tratamiento = require('./models/tratamiento'); 
-const Multimedia = require('./models/multimedia'); 
+const Tratamiento = require('./models/tratamiento');
+const Multimedia = require('./models/multimedia');
 const Alergia = require('./models/alergia');
-const Cita = require('./models/cita'); 
+const Cita = require('./models/cita');
 
 /*
 // Gerar chaves JWT secrets
 // const crypto = require('crypto');
 
-// const jwtSecret = crypto.randomBytes(32).toString('hex'); 
+// const jwtSecret = crypto.randomBytes(32).toString('hex');
 // console.log("jwt", jwtSecret);
 
 */
 // Associações entre os Modelos
 Usuario.hasMany(Cita, { foreignKey: 'idAsistenteP' });
 
-Paciente.hasMany(Cita, { foreignKey: 'idPaciente' });
-Paciente.hasMany(Historial, { foreignKey: 'idPaciente' });
-Paciente.hasMany(Alergia, { foreignKey: 'idPaciente' });
+Usuario.hasMany(Historial, { foreignKey: 'idPaciente' });
+Usuario.hasMany(Alergia, { foreignKey: 'idPaciente' });
 
 Historial.hasMany(Tratamiento, { foreignKey: 'historialClinicoId' });
 Historial.hasMany(Multimedia, { foreignKey: 'historialClinicoId' });
@@ -43,7 +42,7 @@ app.use(cookieParser());
 // Configuração do Middleware de CORS
 const corsOptions = {
   origin: 'http://localhost:5173', // URL do seu frontend
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', 
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['x-access-token'],

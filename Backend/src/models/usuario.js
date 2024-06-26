@@ -45,8 +45,8 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  cpf: { // Novo campo para CPF
-    type: DataTypes.STRING(11), // Tamanho para armazenar CPF formatado (xxx.xxx.xxx-xx)
+  cpf: {
+    type: DataTypes.STRING(11),
     allowNull: false,
     unique: true,
   },
@@ -61,7 +61,25 @@ const Usuario = sequelize.define('Usuario', {
   byId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-  }
+  },
+  // Campos específicos de pacientes
+  tipoSangre: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  idZona: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Zonas',
+      key: 'id',
+    },
+  },
+  status: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  },
 });
 
 // Hook beforeCreate para criptografar a senha antes de criar o usuário
