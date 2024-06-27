@@ -156,7 +156,8 @@ const getUsuarioByCPF = async (req, res) => {
         telefono: usuario.telefono,
         cpf: usuario.cpf,
         cidade: usuario.cidade,
-        estado: usuario.estado
+        estado: usuario.estado,
+        idZona: usuario.idZona
       }
      });
   } catch (error) {

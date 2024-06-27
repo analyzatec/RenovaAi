@@ -43,13 +43,13 @@ const Historial = sequelize.define('Historial', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  idPaciente: {
+  idPaciente: { // ID do paciente (usuário com rol 'paciente')
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Pacientes',
-      key: 'id'
-    }
+      model: 'Usuarios',
+      key: 'id',
+    },
   }
 });
 

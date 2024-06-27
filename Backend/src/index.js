@@ -8,12 +8,12 @@ const routes = require('./routes');
 const sequelize = require('./config/database');
 const Usuario = require('./models/usuario');
 const Zona = require('./models/zona'); // Zona antes de Paciente (se houver relação)
-// const Paciente = require('./models/paciente');
+const Cita = require('./models/cita');
 const Historial = require('./models/historial'); // Historial antes de Tratamiento e Multimedia
 const Tratamiento = require('./models/tratamiento');
 const Multimedia = require('./models/multimedia');
 const Alergia = require('./models/alergia');
-const Cita = require('./models/cita');
+const Medicamento = require('./models/medicamento');
 
 /*
 // Gerar chaves JWT secrets
@@ -24,7 +24,11 @@ const Cita = require('./models/cita');
 
 */
 // Associações entre os Modelos
-Usuario.hasMany(Cita, { foreignKey: 'idAsistenteP' });
+Usuario.hasMany(Cita, { foreignKey: 'idPaciente' });
+Usuario.hasMany(Cita, { foreignKey: 'idUsuarioCadastro' });
+Cita.hasMany(Medicamento, { foreignKey: 'idCita' });
+
+Cita.belongsTo(Zona, { foreignKey: 'idZona' });
 
 Usuario.hasMany(Historial, { foreignKey: 'idPaciente' });
 Usuario.hasMany(Alergia, { foreignKey: 'idPaciente' });

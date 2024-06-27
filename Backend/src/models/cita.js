@@ -33,6 +33,14 @@ const Cita = sequelize.define('Cita', {
       key: 'id',
     },
   },
+  idZona: { // ID da zona (UBS)
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Zonas',
+      key: 'id',
+    },
+  },
 });
 
 module.exports = Cita;
