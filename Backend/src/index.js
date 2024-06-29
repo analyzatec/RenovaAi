@@ -24,7 +24,7 @@ const Medicamento = require('./models/medicamento');
 
 */
 // Associações entre os Modelos
-Usuario.hasMany(Cita, { foreignKey: 'idPaciente' });
+Usuario.hasMany(Cita, { foreignKey: 'idPaciente', as: 'Citas' });
 Usuario.hasMany(Cita, { foreignKey: 'idUsuarioCadastro' });
 Cita.hasMany(Medicamento, { foreignKey: 'idCita' });
 

@@ -10,7 +10,7 @@ const getPacientesComReceitas = async (req, res) => {
   try {
     // 1. Busca todas as receitas, ordenadas pela data de registro em ordem decrescente
     const receitas = await Cita.findAll({
-      attributes: ['idPaciente', 'dataUltimaConsulta', 'dataRegistro', 'idZona'],
+      attributes: ['id', 'idPaciente', 'dataUltimaConsulta', 'dataRegistro', 'idZona'],
       order: [['dataRegistro', 'DESC']],
       include: [
         {
@@ -87,11 +87,92 @@ const cadastrarMedicamentos = async (req, res) => {
   }
 };
 
+// Função para buscar uma receita por ID
+const getReceitaById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. Busca a receita pelo ID
+    const receita = await Cita.findByPk(id);
+
+    if (!receita) {
+      return res.status(404).json({ message: 'Receita não encontrada.' });
+    }
+
+    // 2. Busca os dados do paciente (usuário)
+    const paciente = await Usuario.findByPk(receita.idPaciente, {
+      attributes: ['cpf', 'idZona', 'nombre']
+    });
+
+    // 3. Busca os medicamentos associados à receita
+    const medicamentos = await Medicamento.findAll({
+      where: { idCita: receita.id }
+    });
+
+    // 4. Combina os dados em um único objeto
+    const receitaCompleta = {
+      ...receita.toJSON(), // Converte a receita para um objeto JSON
+      Paciente: paciente ? paciente.toJSON() : null, // Adiciona os dados do paciente
+      Medicamentos: medicamentos // Adiciona os medicamentos
+    };
+
+    res.status(200).json(receitaCompleta);
+  } catch (error) {
+    console.error('Erro ao buscar receita:', error);
+    res.status(500).json({ message: 'Erro ao buscar receita.' });
+  }
+};
+
+// Função para atualizar uma receita
+const atualizarReceita = async (req, res) => {
+  const { id } = req.params;
+  const { dataUltimaConsulta, idZona } = req.body; // Inclua idZona
+
+  try {
+    const receita = await Cita.findByPk(id);
+    console.log(receita)
+
+    if (!receita) {
+      return res.status(404).json({ message: 'Receita não encontrada.' });
+    }
+
+    await receita.update({ dataUltimaConsulta, idZona }); // Atualize idZona
+
+    res.status(200).json({ message: 'Receita atualizada com sucesso!' });
+  } catch (error) {
+    console.error('Erro ao atualizar receita:', error);
+    res.status(500).json({ message: 'Erro ao atualizar receita.' });
+  }
+};
+
+const atualizarMedicamento = async (req, res) => {
+  const { id } = req.params;
+  const { nome, dosagem, instrucoes } = req.body;
+
+  try {
+    const medicamento = await Medicamento.findByPk(id);
+
+    if (!medicamento) {
+      return res.status(404).json({ message: 'Medicamento não encontrado.' });
+    }
+
+    await medicamento.update({ nome, dosagem, instrucoes });
+
+    res.status(200).json({ message: 'Medicamento atualizado com sucesso!' });
+  } catch (error) {
+    console.error('Erro ao atualizar medicamento:', error);
+    res.status(500).json({ message: 'Erro ao atualizar medicamento.' });
+  }
+};
+
 // ... (outras funções do controller - criar, editar, visualizar receita e medicamentos)
 
 module.exports = {
   getPacientesComReceitas,
   cadastrarReceita,
-  cadastrarMedicamentos
+  cadastrarMedicamentos,
+  getReceitaById,
+  atualizarReceita,
+  atualizarMedicamento,
   // ... (outras funções do controller)
 };
